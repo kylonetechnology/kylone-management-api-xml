@@ -1,8 +1,8 @@
 <?php
 /*
  * Example PHP application to make calls on
- * Kylone MicroCMS XML API, v6.1.70
- * Revision 14 November, 2017
+ * Kylone MicroCMS XML API, v2.2.0
+ * Revision 5 October, 2018
  */
 
 // posts data with cURL and get XML document as response
@@ -17,9 +17,8 @@ function doc_post($url, $doc)
    curl_setopt($ct, CURLOPT_MAXREDIRS, 2);
    curl_setopt($ct, CURLOPT_URL, $url);
    curl_setopt($ct, CURLOPT_POST, 1);
-   curl_setopt($ct, CURLOPT_SAFE_UPLOAD, false);
    curl_setopt($ct, CURLOPT_POSTFIELDS, array("xml" => $doc));
-   curl_setopt($ct, CURLOPT_USERAGENT, "API Client, MicroCMS-XML-API/v6.1.70");
+   curl_setopt($ct, CURLOPT_USERAGENT, "API Client, MicroCMS-XML-API/v2.2.0");
    curl_setopt($ct, CURLOPT_HTTPHEADER, array('Content-Encoding: UTF-8'));
    curl_setopt($ct, CURLOPT_ENCODING , "gzip");
    $res = curl_exec($ct);
@@ -70,7 +69,7 @@ function doc_construct($fname, $argxml, $ssnid = "", $xfile = false)
    return $x;
 }
 
-// performs inquiry and returns response as it is (text XML document)
+// performs inquiry and returns response as it is (XML document)
 function do_query_and_get_doc($url, $doc)
 {
    return doc_post($url, $doc);

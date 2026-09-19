@@ -20,7 +20,7 @@ Two versions of the API are served side by side:
 | `doc/kylone-xml-api-v2-guide.md` | API v2: transport, authentication, envelope, working model, functions and actions, resources, failures, examples, migration from v1 |
 | `doc/kylone-xml-api-v2-hospitality.md` | v2 addendum for headends serving third-party TVs and players: media player ranges, HLS output profiles and encryption, feeds |
 | `doc/kylone-xml-api-v2-cpe.md` | v2 addendum for headends with Kylone's own client software: set-top boxes, TV sets, mobile devices, messages, service packages |
-| `doc/kylone-xml-api-v1.pdf` | API v1 usage guide (2018) |
+| `doc/kylone-xml-api.pdf` | API v1 usage guide (2018) |
 | `doc/kylone-xml-api-v1-examples.md` | API v1 usage examples, refreshed in 2026 |
 
 ## Reference clients

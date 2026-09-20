@@ -11,8 +11,6 @@ HMAC.
 | `kylone-xml-api-v2-cpe.md` | v2 addendum: Kylone set-top boxes, TV sets, mobile devices, messages |
 | `kylone-xml-api.pdf` | API v1 (2018 guide): password login, positional fields; unchanged |
 | `kylone-xml-api-v1-examples.md` | v1 usage examples, refreshed 2026 |
-| `apicall-v2.php` | reference client for v2 (PHP, curl) |
-| `apicall-v1.php` | reference client for v1 |
 
 Version 2 is the recommended API for new integrations (available from headend v4.1.1).
 Version 1 keeps working for existing ones.

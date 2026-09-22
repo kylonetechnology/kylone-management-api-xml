@@ -1,7 +1,7 @@
 # Kylone XML API v1 — Usage Examples
 
 Revision 2026-09-19. The v1 API is the contract described in the 2018 guide
-(`kylone-xml-api-v1.pdf`): password login with a session cookie, fields addressed by
+(`kylone-xml-api.pdf`): password login with a session cookie, fields addressed by
 position (`k<N>`). It keeps working unchanged on every headend release. New integrations
 should use v2 (`kylone-xml-api-v2-guide.md`); this document collects examples for
 integrations that stay on v1.

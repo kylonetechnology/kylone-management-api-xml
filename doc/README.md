@@ -14,6 +14,10 @@ HMAC.
 | `kylone-xml-api-v1-examples.md` | v1 usage examples, refreshed 2026 |
 | `apicall-v2.php` | reference client for v2 (PHP, curl) |
 | `apicall-v1.php` | reference client for v1 |
+| `metrics-get.php` | reads the metrics endpoint (Prometheus text, HTTP basic auth with a read-only key) |
+| `fieldmap-dump.php` | dumps every page's field map of a headend and diffs two dumps (the fieldmap changelog between releases) |
 
-Version 2 is the recommended API for new integrations (available from headend v4.1.1).
+Version 2 is the recommended API for new integrations (available from headend v4.1.1;
+the read-only key role, the `version` function, the realtime functions and the metrics
+endpoint from v4.2.0).
 Version 1 keeps working for existing ones.

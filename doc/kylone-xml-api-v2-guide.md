@@ -46,13 +46,19 @@ the file `var/apiplain` under the portal directory.
 ## 2. Authentication
 
 Create the key in the web UI: **Management > API Keys > New**, Use = *Management API v2*,
-API Rights = *Admin* or *Operator*. The page shows the key name and a 52-character secret.
+API Rights = *Admin* (value `user`), *Operator* (value `operator`) or *Read-only* (value
+`viewer`: sees every page an admin sees, and every `save`, `add`, `del`, `res` or `sres`
+is refused with `not-allowed`; the role for monitoring and for the metrics endpoint,
+section 10). The page shows the key
+name and the secret: 56 characters, base32 with its `=` padding. Use the secret exactly as
+displayed, padding included; a 52-character form (the padding stripped) signs wrongly.
 Regenerate the secret at any time from the same page ("Regenerate Key"); the old one stops
 working immediately.
 
 A management key acts with the rights of a normal admin or operator user. It can never
 act as the super administrator. Keys can be disabled without deleting them, and
-"Last Used" on the key page shows the last successful call.
+"Last Used" on the key page shows the last successful call. Key names match without
+regard to case; sign with the name exactly as you send it in `akey`.
 
 **Signature.** Build one string from five lines joined by `\n` and sign it with
 HMAC-SHA256, the secret taken exactly as shown (ASCII), output as lowercase hex:
@@ -114,31 +120,40 @@ Response:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<cLst><container>
-  <operation>
-    <type>response</type>
-    <status>ok</status>
-    <version>2</version>
-    <fieldmap>
-      <atr name="_sec0" k="0" must="false" ro="true" type="section">Interface</atr>
-      <atr name="name" k="1" must="false" ro="true" type="str">Name</atr>
-      <atr name="sipa" k="5" must="true" ro="false" type="inetaddr">IP Address</atr>
-      <atr name="smas" k="4" must="false" ro="false" type="option">Group</atr>
-      <atr name="commit" k="15" must="false" ro="true" type="res">Commit Changes</atr>
-      ...
-    </fieldmap>
-    <keyfield>name</keyfield>
-    <options>
-      <opt name="smas"><atr val="-">None</atr><atr val="bond0">bond0</atr></opt>
-    </options>
-    <resources>
-      <res name="commit" mode="res" k="15" title="Commit Changes"></res>
-    </resources>
-  </operation>
-  <data model="tree">
-    <elm><atr n="name">lan1</atr><atr n="sipa">192.0.2.10</atr>...</elm>
-  </data>
-</container></cLst>
+<cLst>
+  <container>
+    <operation>
+      <type>response</type>
+      <status>ok</status>
+      <version>2</version>
+      <fieldmap>
+        <atr name="_sec0" k="0" must="false" ro="true" type="section">Interface</atr>
+        <atr name="name" k="1" must="false" ro="true" type="str">Name</atr>
+        <atr name="sipa" k="5" must="true" ro="false" type="inetaddr">IP Address</atr>
+        <atr name="smas" k="4" must="false" ro="false" type="option">Group</atr>
+        <atr name="commit" k="15" must="false" ro="true" type="res">Commit Changes</atr>
+        ...
+      </fieldmap>
+      <keyfield>name</keyfield>
+      <options>
+        <opt name="smas">
+          <atr val="-">None</atr>
+          <atr val="bond0">bond0</atr>
+        </opt>
+      </options>
+      <resources>
+        <res name="commit" mode="res" k="15" title="Commit Changes"/>
+      </resources>
+    </operation>
+    <data model="tree">
+      <elm>
+        <atr n="name">lan1</atr>
+        <atr n="sipa">192.0.2.10</atr>
+        ...
+      </elm>
+    </data>
+  </container>
+</cLst>
 ```
 
 - `fieldmap` describes every field of the page: its name, whether it must be given on
@@ -157,6 +172,28 @@ Field types: `str`, `longtext`, `bigtext`, `bool` (`true`/`false`), `option`, `r
 data URI), `color`, and address types such as `inetaddr`, `inetmask`, `inetport`,
 `inetn`, `pidlist`. Any type not listed here is sent as a string. `section` entries are
 headings and cannot be written; their names start with `_sec`.
+
+Further types a page may report:
+
+| type | read | write |
+|---|---|---|
+| `hidden` | a stored value the page does not show; always `ro="true"` | never (save ignores it) |
+| `callback` | a value rendered by the page (a status, a summary); read-only | never |
+| `imagehtml` | an image rendered by the page; read-only | never |
+| `intwoz`, `intwozn` | an integer, `intwoz` with 0 meaning "off" or "auto", `intwozn` allowing a negative value | as an integer |
+| `multicastopt` | a multicast address with the page's own option list | as the address text, or one of the option values |
+| `inetportopt` | a port with the page's own option list | as the port number, or one of the option values |
+| `list` | several values, one `<item>` per entry (section 4, "List fields") | give the argument once per entry |
+
+**List fields.** A field of type `list` holds several entries (the programs of a
+multiplexer, for example). A view returns it as `<atr n="itmlst" t="list"><item>…</item><item>…</item></atr>`;
+save and add take the same argument once per entry, in order:
+`<atr name="itmlst">PROGRAM_A</atr><atr name="itmlst">PROGRAM_B</atr>`. Giving a list
+argument once replaces the list with that single entry; not giving it leaves the list as it was.
+
+Field names are unique on a page: when two fields of a page share a stored name (two
+resources of one property, two list columns of one field), the second one carries a
+numbered suffix, `pidctx_2`. The `k` index of both stays as it was.
 
 ## 4. Working model
 
@@ -237,16 +274,23 @@ Saves and adds take effect in the configuration database only. Streaming changes
 A resource is an action of a page. The `resources` block of a view response lists them:
 
 ```xml
-<res name="last" mode="sres" k="1" title="Apply Changes">
-  <arg name="rsrv" must="false" type="option" default="noop">Streaming Engine
-    <opt val="noop">Keep running</opt><opt val="sync">Update</opt><opt val="kill">Restart</opt>
-  </arg>
-  <arg name="rstb" must="false" type="bool" default="false">Restart set-top boxes</arg>
-</res>
-<res name="summary" mode="res" k="19" declared="false" title="Configuration Summary"/>
+<resources>
+  <res name="last" mode="sres" k="1" title="Apply Changes">
+    <arg name="rsrv" must="false" type="option" default="noop">Streaming Engine
+      <opt val="noop">Keep running</opt>
+      <opt val="sync">Update</opt>
+      <opt val="kill">Restart</opt>
+    </arg>
+    <arg name="rstb" must="false" type="bool" default="false">Restart set-top boxes</arg>
+  </res>
+  <res name="summary" mode="res" k="19" declared="false" title="Configuration Summary"/>
+</resources>
 ```
 
-- `name` is what `act=res,<name>` takes. `mode="res"` needs `key`, `mode="sres"` does not.
+- `name` is what `act=res,<name>` takes. `mode="res"` needs `key`; `mode="sres"` does
+  not: the page has no records, or a single fixed one (the commit page, the radio pages),
+  and `act=sres,<name>` is the call. On a single-record page `act=res,<name>` without a
+  key is accepted as well.
 - Declared resources list their arguments with the fieldmap vocabulary; the headend
   validates them before running the action (`missing-arg`, `bad-arg`) and applies the
   defaults.
@@ -258,8 +302,12 @@ A resource is an action of a page. The `resources` block of a view response list
 ## 7. Failures
 
 ```xml
-<operation><type>response</type><status>failed</status><version>2</version>
-<reason>bad-arg</reason></operation>
+<operation>
+  <type>response</type>
+  <status>failed</status>
+  <version>2</version>
+  <reason>bad-arg</reason>
+</operation>
 <data model="text">argument 'rsrv' of resource 'last' does not accept 'bogus'</data>
 ```
 
@@ -274,8 +322,10 @@ A resource is an action of a page. The `resources` block of a view response list
 | `replayed` | 401 | nonce already used inside the window |
 | `https-required` | 403 | plain HTTP |
 | `unknown-target` | 404 | `res,<name>` or `get,<name>` names nothing on the page |
+| `unknown-function` | 404 | the request names a function this unit does not have (not licensed, or not on this product) |
+| `not-found` | 404 | `key` names no record of the page; the data element says "record not found: <key>" |
 | `missing-arg`, `bad-arg` | 400 | a declared resource argument is absent or out of range, or an option field is given a value outside its fixed list |
-| (none) | 200 | the function itself failed: permission, unknown record, validation; the data element says why |
+| (none) | 200 | the function itself failed: permission, validation; the data element says why |
 
 ## 8. Examples
 
@@ -301,7 +351,10 @@ php apicall-v2.php 192.0.2.1 $K $S network "act=view&key=lan1"
 A list answer carries the list's columns in the fieldmap and one `elm` per record:
 
 ```xml
-<operation><type>response</type><status>ok</status><version>2</version>
+<operation>
+  <type>response</type>
+  <status>ok</status>
+  <version>2</version>
   <fieldmap>
     <atr name="name" k="1" type="str">Name</atr>
     <atr name="supd" k="2" type="str">Default</atr>
@@ -312,8 +365,20 @@ A list answer carries the list's columns in the fieldmap and one `elm` per recor
   <keyfield>name</keyfield>
 </operation>
 <data model="tree">
-  <elm><atr n="name">lan1</atr><atr n="supd"></atr><atr n="mac">00:1b:21:00:00:01</atr><atr n="sipa">0.0.0.0</atr>...</elm>
-  <elm><atr n="name">lan2</atr><atr n="supd">*</atr><atr n="mac">00:1b:21:00:00:02</atr><atr n="sipa">192.0.2.1</atr>...</elm>
+  <elm>
+    <atr n="name">lan1</atr>
+    <atr n="supd"></atr>
+    <atr n="mac">00:1b:21:00:00:01</atr>
+    <atr n="sipa">0.0.0.0</atr>
+    ...
+  </elm>
+  <elm>
+    <atr n="name">lan2</atr>
+    <atr n="supd">*</atr>
+    <atr n="mac">00:1b:21:00:00:02</atr>
+    <atr n="sipa">192.0.2.1</atr>
+    ...
+  </elm>
 </data>
 ```
 
@@ -352,14 +417,24 @@ A resource answers with the page it belongs to, refreshed after the action. For 
 Changes that is the commit record with the new timestamp:
 
 ```xml
-<operation><type>response</type><status>ok</status><version>2</version>
+<operation>
+  <type>response</type>
+  <status>ok</status>
+  <version>2</version>
   <fieldmap>
     <atr name="lcommit" k="0" must="true" ro="true" type="timestamp">Last Commit</atr>
     <atr name="last" k="1" must="false" ro="true" type="res">Apply Changes</atr>
   </fieldmap>
-  <resources><res name="last" mode="res" k="1" title="Apply Changes">...</res></resources>
+  <resources>
+    <res name="last" mode="sres" k="1" title="Apply Changes">...</res>
+  </resources>
 </operation>
-<data model="tree"><elm><atr n="lcommit">19 September 2026 Saturday, 16:57:10</atr><atr n="last"></atr></elm></data>
+<data model="tree">
+  <elm>
+    <atr n="lcommit">19 September 2026 Saturday, 16:57:10</atr>
+    <atr n="last"></atr>
+  </elm>
+</data>
 ```
 
 A resource that fails (busy engine, refused by a check) answers `<status>failed</status>`
@@ -394,20 +469,19 @@ php apicall-v2.php 192.0.2.1 $K $S tponders "act=view&key=DEMO11794"
 
 Program scan. The transponder's **Configure Programs** resource opens the scan form; the
 scan itself runs through the `autoscan` function with the form's values. The form fields
-keep their positional names on this page by design (the form is generated, not stored):
+have names (the positional `k` indices stay accepted):
 
-| field | meaning | values |
-|---|---|---|
-| `k1` | tuner input to scan with | from the form's options |
-| `k3` | create one stream per PMT | `true`/`false` |
-| `k4` | only streams with video or audio | `true`/`false` |
-| `k5` | one stream per audio track | `true`/`false` |
-| `k6` | filter out unknown PIDs on new streams | `yes`/`no` |
-| `k7` | encrypted streams | `yes` = mark disabled, `no` = mark enabled |
-| `k8` | LCN of new streams | `yes` = from the source, `no` = automatic |
-| `k10` | update service names and logos of existing streams | `true`/`false` |
-| `k11`, `k12`, `k13` | PID filter, encrypted-stream state and LCN of existing streams | as above, or `ign` = keep as they are |
-
+| field | (k) | meaning | values |
+|---|---|---|---|
+| `tuner` | `k1` | tuner input to scan with | from the form's options |
+| `spts` | `k3` | create one stream per PMT | `true`/`false` |
+| `avonly` | `k4` | only streams with video or audio | `true`/`false` |
+| `multiaudio` | `k5` | one stream per audio track | `true`/`false` |
+| `pidfilter` | `k6` | filter out unknown PIDs on new streams | `yes`/`no` |
+| `scrambled` | `k7` | encrypted streams | `yes` = mark disabled, `no` = mark enabled |
+| `lcn` | `k8` | LCN of new streams | `yes` = from the source, `no` = automatic |
+| `updnames` | `k10` | update service names and logos of existing streams | `true`/`false` |
+| `updpidfilter`, `updscrambled`, `updlcn` | `k11`, `k12`, `k13` | PID filter, encrypted-stream state and LCN of existing streams | as above, or `ign` = keep as they are |
 ```
 # the form (tuner inputs and the scan options with their allowed values)
 php apicall-v2.php 192.0.2.1 $K $S autoscan "cont=tponder&key=DEMO11794&kA=autoask"
@@ -423,10 +497,17 @@ log; the machine-readable result is the program list afterwards (`channels` filt
 the transponder, section 8.6):
 
 ```xml
-<operation><type>response</type><status>ok</status><version>2</version>
-  <args><atr n="cont">tponder</atr></args>
+<operation>
+  <type>response</type>
+  <status>ok</status>
+  <version>2</version>
+  <args>
+    <atr n="cont">tponder</atr>
+  </args>
 </operation>
-<data model="tree"><elm></elm></data>
+<data model="tree">
+  <elm></elm>
+</data>
 <data model="text">
 > DVB API 5, 511, Adapter(2/0)
   Frontend: DVB-S/S2 tuner card
@@ -466,7 +547,52 @@ php apicall-v2.php 192.0.2.1 $K $S channels "dsb=sattpn&src=DEMO11794"      # th
 php apicall-v2.php 192.0.2.1 $K $S channels "act=view&key=DEMO11794_t10601"
 
 # service name, LCN, state, multicast and SRT delivery, CDN push profile, HLS output profile
-php apicall-v2.php 192.0.2.1 $K $S channels "act=save&key=DEMO11794_t10601&dname=Demo News&satnum=100&active=1&bren=yes&srcen=yes&rtmppro=&outpr=Hospitality"
+# (defhp is the writable HLS profile field; outpr is the legacy post-processing output and
+# is reported hidden/read-only on these pages)
+php apicall-v2.php 192.0.2.1 $K $S channels "act=save&key=DEMO11794_t10601&dname=Demo News&satnum=100&active=1&bren=yes&srcen=yes&rtmppro=&defhp=Hospitality"
+```
+
+### 8.6a Multiplexers and multi-program sources (write paths)
+
+A multiplexer (`pmpts`): the key, the display name, the state, then the program list as a
+list field (section 3), one `itmlst` argument per program, each a program's record name:
+```
+php apicall-v2.php 192.0.2.1 $K $S pmpts "act=add&name=mux-out-2&dname=Mux 2&active=1"
+php apicall-v2.php 192.0.2.1 $K $S pmpts "act=save&key=mux-out-2&itmlst=DEMO11794_t10601&itmlst=DEMO11794_t10602&bitrate=38000000&bren=yes&moaddr=239.0.0.2&moport=1234&brif=lan1"
+php apicall-v2.php 192.0.2.1 $K $S pmpts "act=view&key=mux-out-2"      # the list comes back as <item> children
+php apicall-v2.php 192.0.2.1 $K $S pmpts "act=del&key=mux-out-2"
+```
+A multi-program source received over SRT (`mptsin`): `spid=srt`, the connection mode
+(`srtmod` 1 = caller, 2 = listener), the source address and port, and the SRT options
+(`srtsid`, `srtpwd`, `srtpbk`, `srtlat`); the add form takes the key, name and transmission,
+the rest is a save:
+```
+php apicall-v2.php 192.0.2.1 $K $S mptsin "act=add&name=remote-mux-1&dname=Remote mux 1&spid=srt&active=1"
+php apicall-v2.php 192.0.2.1 $K $S mptsin "act=save&key=remote-mux-1&srtmod=1&straddr=192.0.2.27&iport=5168&srtsid=mux-out-1&srtpwd=<passphrase>&srtpbk=16&srtlat=500&mptout=auto"
+php apicall-v2.php 192.0.2.1 $K $S mptsin "act=view&key=remote-mux-1"
+```
+Send `spid` with a save that changes the transmission type, and `srtmod` with one that
+changes between caller and listener: the page's field set follows them (the caller has a
+source address, the listener a local port). A save that leaves them out keeps the stored
+values.
+
+Its programs appear on `mpchannels` after a scan (the source's **Configure Programs**
+resource, `autoask`, and the `autoscan` function as in 8.5).
+
+Not available over the API: **Live Stream Import** (`kimport`) and **Bulk Operations**
+(`bulkop`) are multi-step web forms (address check, selection, confirmation) and `apicalls`
+lists them for completeness only. The equivalent over the API is one `add`/`save` per record,
+with the other headend's stream list read through its own API (`strurl`, `channels`).
+
+**Add validation.** An `add` that lacks the key field or a required (`must`) field, or
+gives an address field an invalid value, fails with `missing-arg` (400) naming the fields;
+it never answers `ok` with the form.
+
+**Raw values in lists.** `raw=true` on a list call returns the stored value of every stored
+column instead of its display value (`1` instead of "Active", the option value instead of
+its label), so an inventory needs one list call, not one view per record:
+```
+php apicall-v2.php 192.0.2.1 $K $S channels "raw=true"
 ```
 
 ### 8.7 HDMI encoding profiles
@@ -493,9 +619,57 @@ The secret of a key is shown in the web UI only; the API never returns it.
 php apicall-v2.php 192.0.2.1 $K $S systool                       # lists the tools as resources
 php apicall-v2.php 192.0.2.1 $K $S systool "act=sres,reboot"
 php apicall-v2.php 192.0.2.1 $K $S systool "act=sres,shutdown"
-php apicall-v2.php 192.0.2.1 $K $S monitor                       # engine status
-php apicall-v2.php 192.0.2.1 $K $S cmssumm                       # configuration summary
+php apicall-v2.php 192.0.2.1 $K $S version                       # provider, product, version, build, edition, host
+php apicall-v2.php 192.0.2.1 $K $S cmssumm                       # configuration summary as tree data: one <section> per kind with its records
+php apicall-v2.php 192.0.2.1 $K $S monitor                       # engine status = the realtime function dvbstat_clear (statdvb too)
+php apicall-v2.php 192.0.2.1 $K $S dash                          # system load = the realtime function cpustat_clear
 ```
+`version` answers a struct; a management system keeps it per unit to know what it talks to:
+```xml
+<data model="struct">
+  <provider>Example Broadcast Systems Ltd.</provider>
+  <product>Kylone</product>
+  <version>v4.2.0</version>
+  <build>2026100100</build>
+  <edition>Enterprise</edition>
+  <host>headend-1</host>
+</data>
+```
+`cmssumm` answers one `<section>` per kind, in the order of the Configuration Summary page:
+```xml
+<data model="tree">
+  <elm>
+    <section name="tponders" title="Transponders" page="tponders" count="16">
+      <rec name="DEMO11794" dname="Demo Mux 11794" active="1" satdvb="DVBS2"/>
+      <rec name="DEMO12015" dname="Demo Mux 12015" active="1" satdvb="DVBS2"/>
+      ...
+    </section>
+  </elm>
+  <elm>
+    <section name="dvb" title="DVB Programs" page="channels" count="42">
+      <rec name="DEMO11794_t10601" dname="Demo News" active="1" sattpn="DEMO11794" satnum="100"/>
+      ...
+    </section>
+  </elm>
+</data>
+```
+
+**Realtime functions.** The live figures of the Dashboard and the Streaming Engine
+Dashboard are served by four functions that also answer without a session for the web UI
+(hence their `_clear` suffix, which is historical: they clear nothing). With a key they
+answer in the v2 envelope and are listed by `apicalls`:
+
+```
+php apicall-v2.php 192.0.2.1 $K $S dvbstat_clear                 # engine status, every service's counters, PSI tables
+php apicall-v2.php 192.0.2.1 $K $S dvbstat_clear "psi=0"         # the same without the PSI tables (a monitoring poll)
+php apicall-v2.php 192.0.2.1 $K $S cpustat_clear                 # CPU, memory, temperature, endpoints
+php apicall-v2.php 192.0.2.1 $K $S modstat_clear "xmod=hwtcnv"   # a processing module's resources, labelled items
+php apicall-v2.php 192.0.2.1 $K $S volstat_clear                 # storage volumes
+```
+
+Pages that `apicalls` marks `[web only]` (instance, contents, sysutil, the dashboard
+boxes) render for a browser and have no API data; the functions above and `cmssumm`
+carry their figures.
 
 ## 9. Migrating a v1 integration
 
@@ -510,7 +684,60 @@ Module profile pages (pre-processing, post-processing and HLS output profiles) n
 their fields `item<N>` after the module's argument list; use the fieldmap titles to find
 the right one, and expect these names to follow the module version.
 
-## 10. Notes
+## 10. Metrics endpoint (Prometheus)
+
+`GET https://<host>/portal/?app=metrics` returns the unit's figures in the Prometheus text
+format: the system (CPU, memory, temperature, uptime, clock), the network interfaces
+(byte and error counters, link state and speed), the storage volumes (size and used
+bytes), the streaming engine (up, uptime, services, endpoints, summed output bit rate) and
+every stream (`kylone_service_*` with the labels `section`, `service`, `key`: up, bit rate,
+buffer, invalid, errors, discontinuities, restarts, start time, inputs, outputs, speed, fps,
+dropped frames), the tuners (`kylone_tuner_*` with `key`, `transponder`, `band`: lock, CNR in dB,
+level in dBm, or the `_percent` variants on cards that report relative figures), the
+stand-ins, and the processing modules (`kylone_pe_*` with `module`, `node`).
+
+Authentication is HTTP basic auth with a Management API key: user = the key name,
+password = the secret as displayed, HTTPS only; a read-only key is the fitting one. No
+session, no signature. Engine counters (`_total`) restart with the stream; use
+`kylone_service_restarts_total` to tell a restart from a reset.
+
+A scrape by hand, with curl:
+```
+curl -u monitor:<secret> https://192.0.2.1/portal/?app=metrics
+```
+```
+# HELP kylone_engine_up 1 when the streaming engine answers.
+# TYPE kylone_engine_up gauge
+kylone_engine_up 1
+# HELP kylone_service_up 1 when the stream is locked and not suspended.
+# TYPE kylone_service_up gauge
+kylone_service_up{section="dvb",service="Demo News",key="DEMO11794_t10601"} 1
+# HELP kylone_service_bitrate_bits_per_second Output bit rate of the stream.
+# TYPE kylone_service_bitrate_bits_per_second gauge
+kylone_service_bitrate_bits_per_second{section="dvb",service="Demo News",key="DEMO11794_t10601"} 4210000
+# HELP kylone_tuner_cnr_db Carrier to noise ratio in dB.
+# TYPE kylone_tuner_cnr_db gauge
+kylone_tuner_cnr_db{key="DEMO11794",transponder="Demo Mux 11794",band="Ku-H"} 11.1
+```
+The Prometheus scrape configuration (`metrics-get.php` beside the reference clients does
+the same in PHP):
+```yaml
+scrape_configs:
+  - job_name: kylone
+    scheme: https
+    metrics_path: /portal/
+    params:
+      app: [metrics]
+    basic_auth:
+      username: monitor
+      password: <the secret as displayed>
+    tls_config:
+      insecure_skip_verify: true   # or the unit's CA
+    static_configs:
+      - targets: ["192.0.2.1"]
+```
+
+## 11. Notes
 
 - One call at a time per key is the safe pattern; the nonce store is per key.
 - Keep the key secret out of URLs and logs; it never needs to travel.

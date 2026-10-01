@@ -156,7 +156,11 @@ php apicall-v2.php 192.0.2.1 $K $S bscan "act=res,start&key=Nightly"
 The start answers the run id in `<run>`:
 
 ```
-<status>ok</status> ... <data model="struct"><run>20260922-132649</run></data>
+<status>ok</status>
+...
+<data model="struct">
+  <run>20260922-132649</run>
+</data>
 ```
 
 A second start while that run is active is queued, not refused; runs of one appliance
@@ -166,7 +170,9 @@ execute one after another. An out-of-range value is refused before anything is s
 php apicall-v2.php 192.0.2.1 $K $S bscan "act=save&key=Nightly&bsrfi=7"
 ```
 ```
-<status>failed</status> ... <reason>bad-arg</reason>
+<status>failed</status>
+...
+<reason>bad-arg</reason>
 <data model="text">field 'bsrfi' does not accept '7'</data>
 ```
 
@@ -183,10 +189,20 @@ ones (`ok`, `0`).
 php apicall-v2.php 192.0.2.1 $K $S bscruns "task=Nightly"
 ```
 ```
-<elm><atr n="name">20260922-132649</atr><atr n="bstsk">Nightly</atr><atr n="bsphs">Finished</atr>
-<atr n="bsrsl">Completed</atr> ... <atr n="bslck">10</atr><atr n="bsnpr">10</atr>
-<atr n="bsnew">0</atr><atr n="bslst">0</atr><atr n="bschg">1</atr>
-<atr n="bsstm">1790083609</atr><atr n="bsftm">1790083857</atr></elm>
+<elm>
+  <atr n="name">20260922-132649</atr>
+  <atr n="bstsk">Nightly</atr>
+  <atr n="bsphs">Finished</atr>
+  <atr n="bsrsl">Completed</atr>
+  ...
+  <atr n="bslck">10</atr>
+  <atr n="bsnpr">10</atr>
+  <atr n="bsnew">0</atr>
+  <atr n="bslst">0</atr>
+  <atr n="bschg">1</atr>
+  <atr n="bsstm">1790083609</atr>
+  <atr n="bsftm">1790083857</atr>
+</elm>
 ```
 
 One transponder changed. The diff says which and how, with the previous values:

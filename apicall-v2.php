@@ -4,8 +4,8 @@
  *
  *   php apicall-v2.php <host> <key name> <key secret> <function> [argstring] [export_name]
  *
- *   php apicall-v2.php 10.75.2.43 mgmt1 ABCD...52chars apicalls
- *   php apicall-v2.php 10.75.2.43 mgmt1 ABCD...52chars network "act=view&key=lan2"
+ *   php apicall-v2.php 10.75.2.43 mgmt1 <56-char secret> apicalls
+ *   php apicall-v2.php 10.75.2.43 mgmt1 <56-char secret> network "act=view&key=lan2"
  *
  * Differences from the 2018 v1 client (apicall-example.php):
  *   - no login/logout: every request authenticates itself with the API key
@@ -19,7 +19,7 @@
  * Signature: four POST fields next to "xml"
  *   akey    key name          ats  unix time        anonce  16 random hex chars
  *   asig    hex HMAC-SHA256(secret, "kylone-api-v2\n" akey "\n" ats "\n" anonce "\n" sha256hex(xml))
- * The secret is the base32 string exactly as the portal shows it (ASCII bytes).
+ * The secret is the base32 string exactly as the portal shows it (56 characters, the = padding included).
  * A failed request answers HTTP 4xx and <status>failed</status><reason>code</reason>;
  * reason "expired" carries the server time in the data element for a clock resync.
  */

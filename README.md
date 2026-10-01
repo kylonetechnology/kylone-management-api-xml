@@ -27,11 +27,15 @@ Two versions of the API are served side by side:
 ## Reference clients
 
 Two command-line clients written in PHP (7.2 or later, with the curl extension) show the
-complete request flow and are enough for testing every function from a shell:
+complete request flow and are enough for testing every function from a shell; two more
+utilities read the metrics endpoint and dump the field maps for a release-to-release diff:
 
 ```
 php apicall-v2.php <host> <key name> <key secret> <function> [arguments] [export name]
 php apicall-v1.php <host> <username> <password> <function> [arguments] [export name]
+php metrics-get.php <host> <key name> <key secret>
+php fieldmap-dump.php <host> <key name> <key secret> <outdir>
+php fieldmap-dump.php diff <dirA> <dirB>
 ```
 
 Both print the request and the response, or only `ok`/`failed` with `CLQUITE=yes`, and

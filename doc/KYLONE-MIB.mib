@@ -1,0 +1,1715 @@
+KYLONE-MIB DEFINITIONS ::= BEGIN
+	-- Version: 2.1
+	-- SUBTREE: 1.3.6.1.4.1.51009
+	-- iso.org.dod.internet.private.enterprises.skylone
+	--
+	-- The Kylone headend objects. The enterprise number 51009 is Skylone's IANA
+	-- assignment; Kylone units register their objects under it, the module identity
+	-- itself at skylone 100. The object identifiers of the 1.0 module (SKYLONE-MIB,
+	-- 2018) are unchanged; the groups that belonged to another product (3, 4, 5) are
+	-- not part of this module.
+	IMPORTS
+		MODULE-IDENTITY, OBJECT-TYPE, Gauge32, Counter32, TimeTicks, Integer32, enterprises
+			FROM SNMPv2-SMI
+		TEXTUAL-CONVENTION, DisplayString, TimeStamp, DateAndTime
+			FROM SNMPv2-TC;
+
+	skylone	OBJECT IDENTIFIER ::= { enterprises 51009 }
+
+	kylone MODULE-IDENTITY
+		LAST-UPDATED
+			"202610021800Z"
+		ORGANIZATION
+			"Kylone"
+		CONTACT-INFO
+			"Kylone
+			https://kylone.com
+			support@kylone.com"
+		DESCRIPTION
+			"The MIB of the Kylone headend units: product and version, system
+			 load, and the state of the receivers, inputs, multiplexers, modulators,
+			 processing modules, outputs, local files and connected peers."
+		REVISION
+			"202610021800Z"
+		DESCRIPTION
+			"Revision 2.1: engStatus (15, engine and unit figures), peStatus (16,
+			 processing nodes), stdStatus (17, stand-ins), netStatus (18, network
+			 interfaces), stoStatus (19, storage volumes); restart counters appended
+			 to the stream tables, speed, fps, dropped frames and service counts on
+			 the module table, rate and service count on the input table."
+		REVISION
+			"202610021200Z"
+		DESCRIPTION
+			"Kylone module. Objects of the 2018 SKYLONE-MIB kept with their
+			 identifiers; another product's groups 3-5 dropped; scalars served with
+			 their .0 instance; DateAndTime columns served as the 11-octet form;
+			 srt added to the input stream types; agent served by one persistent
+			 process."
+		REVISION
+			"201811252137Z"
+		DESCRIPTION
+			"Initial revision (SKYLONE-MIB 1.0)"
+	::= { skylone 100 }
+
+	BufferSize ::= TEXTUAL-CONVENTION
+		DISPLAY-HINT "d-2"
+		STATUS  current
+		DESCRIPTION
+			"A buffer type definition which is two digit shifted value
+			 in format secods.milliseconds"
+		SYNTAX  Integer32 (0..10000)
+
+	productInfo	OBJECT IDENTIFIER ::= { skylone 1 }
+
+	-- kylone.productInfo subtree
+	productName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Product Name"
+		::= {productInfo 1 }
+
+	productVersion OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Version"
+		::= {productInfo 2 }
+
+	productBuild OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Build"
+		::= {productInfo 3 }
+
+	sysResource	OBJECT IDENTIFIER ::= { skylone 2 }
+
+	-- kylone.sysResource subtree
+	sysResourceCPU OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"CPU Usage"
+		::= {sysResource 1 }
+
+	sysResourceMEM OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Memory Usage"
+		::= {sysResource 2 }
+
+	tpStatus	OBJECT IDENTIFIER ::= { skylone 6 }
+
+	-- kylone.tpStatus subtree
+	tpNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of Transponders"
+		::= { tpStatus 1 }
+
+	tpTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF TpEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of Transponder entries"
+		::= { tpStatus 2 }
+
+	tpEntry OBJECT-TYPE
+		SYNTAX  TpEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A Transponder Entry"
+		INDEX   { tpIndex }
+		::= { tpTable 1 }
+
+	TpEntry ::= SEQUENCE {
+		tpIndex Integer32,
+		tpName DisplayString,
+		tpSignal DisplayString,
+		tpSync DisplayString,
+		tpLock DisplayString,
+		tpStrength Integer32,
+		tpSnr Integer32,
+		tpBitrate Gauge32,
+		tpInvalid Integer32,
+		tpError Integer32,
+		tpDiscont Integer32,
+		tpNumConfig Integer32,
+		tpNumService Integer32,
+		tpRestarts Integer32
+	}
+ 
+	tpIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each Transponder"
+		::= { tpEntry 1 }
+
+	tpName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the Transponder"
+		::= { tpEntry 2 }
+
+	tpSignal OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Signal Status of the Transponder"
+		::= { tpEntry 3 }
+
+	tpSync OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Sync Satus of the Transponder"
+		::= { tpEntry 4 }
+
+	tpLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Transponder"
+		::= { tpEntry 5 }
+
+	tpStrength OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Signal Strength of the Transponder"
+		::= { tpEntry 6 }
+
+	tpSnr OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"SNR Level of the Transponder"
+		::= { tpEntry 7 }
+
+	tpBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the Transponder"
+		::= { tpEntry 8 }
+
+	tpInvalid OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Invalid packets of the Transponder"
+		::= { tpEntry 9 }
+
+	tpError OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Errors of the Transponder"
+		::= { tpEntry 10 }
+
+	tpDiscont OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Discontinues of the Transponder"
+		::= { tpEntry 11 }
+
+	tpNumConfig OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of configured services of the Transponder"
+		::= { tpEntry 12 }
+
+	tpNumService OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total number of sevices available in the Transponder"
+		::= { tpEntry 13 }
+
+	tpRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the receiver stream since the engine started"
+		::= { tpEntry 14 }
+
+	mptStatus	OBJECT IDENTIFIER ::= { skylone 7 }
+
+	-- kylone.mptStatus subtree
+	mptNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of MPTS Inputs"
+		::= { mptStatus 1 }
+
+	mptTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF MptEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of MPTS Input entries"
+		::= { mptStatus 2 }
+
+	mptEntry OBJECT-TYPE
+		SYNTAX  MptEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A MPTS Input Entry"
+		INDEX   { mptIndex }
+		::= { mptTable 1 }
+
+	MptEntry ::= SEQUENCE {
+		mptIndex Integer32,
+		mptName DisplayString,
+		mptLock DisplayString,
+		mptBitrate Gauge32,
+		mptInvalid Integer32,
+		mptError Integer32,
+		mptDiscont Integer32,
+		mptNumConfig Integer32,
+		mptNumService Integer32,
+		mptRestarts Integer32
+	}
+ 
+	mptIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each MPTS Input"
+		::= { mptEntry 1 }
+
+	mptName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the MPTS Input"
+		::= { mptEntry 2 }
+
+	mptLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the MPTS Input"
+		::= { mptEntry 3 }
+
+	mptBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the MPTS Input"
+		::= { mptEntry 4 }
+
+	mptInvalid OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Invalid packets of the MPTS Input"
+		::= { mptEntry 5 }
+
+	mptError OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Errors of the MPTS Input"
+		::= { mptEntry 6 }
+
+	mptDiscont OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Discontinues of the MPTS Input"
+		::= { mptEntry 7 }
+
+	mptNumConfig OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of configured services of the MPTS Input"
+		::= { mptEntry 8 }
+
+	mptNumService OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total number of sevices available in the MPTS Input"
+		::= { mptEntry 9 }
+
+	mptRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the MPTS input since the engine started"
+		::= { mptEntry 10 }
+
+	muxStatus	OBJECT IDENTIFIER ::= { skylone 8 }
+
+	-- kylone.muxStatus subtree
+	muxNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of Multiplexers"
+		::= { muxStatus 1 }
+
+	muxTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF MuxEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of Multiplexer entries"
+		::= { muxStatus 2 }
+
+	muxEntry OBJECT-TYPE
+		SYNTAX  MuxEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A Multiplexer Entry"
+		INDEX   { muxIndex }
+		::= { muxTable 1 }
+
+	MuxEntry ::= SEQUENCE {
+		muxIndex Integer32,
+		muxName DisplayString,
+		muxLock DisplayString,
+		muxBitrate Gauge32,
+		muxInvalid Integer32,
+		muxError Integer32,
+		muxDiscont Integer32,
+		muxNumActive Integer32,
+		muxNumConfig Integer32,
+		muxRestarts Integer32
+	}
+ 
+	muxIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each Multiplexer"
+		::= { muxEntry 1 }
+
+	muxName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the Multiplexer"
+		::= { muxEntry 2 }
+
+	muxLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Multiplexer"
+		::= { muxEntry 3 }
+
+	muxBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the Multiplexer"
+		::= { muxEntry 4 }
+
+	muxInvalid OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Invalid packets of the Multiplexer"
+		::= { muxEntry 5 }
+
+	muxError OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Errors of the Multiplexer"
+		::= { muxEntry 6 }
+
+	muxDiscont OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of Discontinues of the Multiplexer"
+		::= { muxEntry 7 }
+
+	muxNumActive OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of active services of Multiplexer"
+		::= { muxEntry 8 }
+
+	muxNumConfig OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total number of configured sevices of Multiplexer"
+		::= { muxEntry 9 }
+
+	muxRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the multiplexer since the engine started"
+		::= { muxEntry 10 }
+
+	dvmStatus	OBJECT IDENTIFIER ::= { skylone 9 }
+
+	-- kylone.dvmStatus subtree
+	dvmNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of DV Modulator"
+		::= { dvmStatus 1 }
+
+	dvmTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF DvmEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of DV Modulator entries"
+		::= { dvmStatus 2 }
+
+	dvmEntry OBJECT-TYPE
+		SYNTAX  DvmEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A DV Modulator Entry"
+		INDEX   { dvmIndex }
+		::= { dvmTable 1 }
+
+	DvmEntry ::= SEQUENCE {
+		dvmIndex Integer32,
+		dvmName DisplayString,
+		dvmType DisplayString,
+		dvmLock DisplayString,
+		dvmStart DateAndTime,
+		dvmDuration TimeStamp,
+		dvmBitrate Gauge32,
+		dvmRestarts Integer32
+	}
+ 
+	dvmIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each DV Modulator"
+		::= { dvmEntry 1 }
+
+	dvmName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the DV Modulator"
+		::= { dvmEntry 2 }
+
+	dvmType OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"The Type of the DV Modulator"
+		::= { dvmEntry 3 }
+
+	dvmLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the DV Modulator"
+		::= { dvmEntry 4 }
+
+	dvmStart OBJECT-TYPE
+		SYNTAX  DateAndTime
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Start Time of the DV Modulator"
+		::= { dvmEntry 5 }
+
+	dvmDuration OBJECT-TYPE
+		SYNTAX  TimeStamp
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total Time of the DV Modulator"
+		::= { dvmEntry 6 }
+
+	dvmBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the DV Modulator"
+		::= { dvmEntry 7 }
+
+	dvmRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the modulator stream since the engine started"
+		::= { dvmEntry 8 }
+
+	exmStatus	OBJECT IDENTIFIER ::= { skylone 10 }
+
+	-- kylone.exmStatus subtree
+	exmNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of External Module"
+		::= { exmStatus 1 }
+
+	exmTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF ExmEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of External Module entries"
+		::= { exmStatus 2 }
+
+	exmEntry OBJECT-TYPE
+		SYNTAX  ExmEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A External Module Entry"
+		INDEX   { exmIndex }
+		::= { exmTable 1 }
+
+	ExmEntry ::= SEQUENCE {
+		exmIndex Integer32,
+		exmName DisplayString,
+		exmType DisplayString,
+		exmLock DisplayString,
+		exmDrop Integer32,
+		exmDuration TimeStamp,
+		exmBitrate Gauge32,
+		exmSpeed Integer32,
+		exmFps Integer32,
+		exmDroppedFrames Integer32,
+		exmNumInput Integer32,
+		exmNumService Integer32
+	}
+ 
+	exmIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each External Module"
+		::= { exmEntry 1 }
+
+	exmName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the External Module"
+		::= { exmEntry 2 }
+
+	exmType OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"The Type of the External Module"
+		::= { exmEntry 3 }
+
+	exmLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the External Module"
+		::= { exmEntry 4 }
+
+	exmDrop OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the module since the engine started (the descriptor is kept for compatibility with the 1.0 module)"
+		::= { exmEntry 5 }
+
+	exmDuration OBJECT-TYPE
+		SYNTAX  TimeStamp
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total Time of the External Module"
+		::= { exmEntry 6 }
+
+	exmBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the External Module"
+		::= { exmEntry 7 }
+
+	exmSpeed OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Processing speed of a transcoding module in hundredths of realtime (100 = realtime); 0 when the module does not report it"
+		::= { exmEntry 8 }
+
+	exmFps OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Frames per second of a transcoding module, in hundredths; 0 when not reported"
+		::= { exmEntry 9 }
+
+	exmDroppedFrames OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Frames dropped by a transcoding module since it started"
+		::= { exmEntry 10 }
+
+	exmNumInput OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Input services of the module"
+		::= { exmEntry 11 }
+
+	exmNumService OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Output services of the module"
+		::= { exmEntry 12 }
+
+	mulStatus	OBJECT IDENTIFIER ::= { skylone 11 }
+
+	-- kylone.mulStatus subtree
+	mulNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of Multicast Output"
+		::= { mulStatus 1 }
+
+	mulTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF MulEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of Multicast Output entries"
+		::= { mulStatus 2 }
+
+	mulEntry OBJECT-TYPE
+		SYNTAX  MulEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A Multicast Output Entry"
+		INDEX   { mulIndex }
+		::= { mulTable 1 }
+
+	MulEntry ::= SEQUENCE {
+		mulIndex Integer32,
+		mulName DisplayString,
+		mulLock DisplayString,
+		mulStart DateAndTime,
+		mulDuration TimeStamp,
+		mulBitrate Gauge32,
+		mulBuffer BufferSize,
+		mulRestarts Integer32
+	}
+ 
+	mulIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each Multicast Output"
+		::= { mulEntry 1 }
+
+	mulName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the Multicast Output"
+		::= { mulEntry 2 }
+
+	mulLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Multicast Output"
+		::= { mulEntry 3 }
+
+	mulStart OBJECT-TYPE
+		SYNTAX  DateAndTime
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Start Time of the Multicast Output"
+		::= { mulEntry 4 }
+
+	mulDuration OBJECT-TYPE
+		SYNTAX  TimeStamp
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total Time of the Multicast Output"
+		::= { mulEntry 5 }
+
+	mulBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the Multicast Output"
+		::= { mulEntry 6 }
+
+	mulBuffer OBJECT-TYPE
+		SYNTAX  BufferSize
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Input buffer in seconds of the Multicast Output"
+		::= { mulEntry 7 }
+
+	mulRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the multicast output since the engine started"
+		::= { mulEntry 8 }
+
+	lfStatus	OBJECT IDENTIFIER ::= { skylone 12 }
+
+	-- kylone.lfStatus subtree
+	lfNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of Local File"
+		::= { lfStatus 1 }
+
+	lfTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF LfEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of Local File entries"
+		::= { lfStatus 2 }
+
+	lfEntry OBJECT-TYPE
+		SYNTAX  LfEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A Local File Entry"
+		INDEX   { lfIndex }
+		::= { lfTable 1 }
+
+	LfEntry ::= SEQUENCE {
+		lfIndex Integer32,
+		lfName DisplayString,
+		lfLock DisplayString,
+		lfLoop DisplayString,
+		lfLoopCount Integer32,
+		lfPosition TimeStamp,
+		lfBitrate Gauge32,
+		lfRestarts Integer32
+	}
+ 
+	lfIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each Local File"
+		::= { lfEntry 1 }
+
+	lfName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the Local File"
+		::= { lfEntry 2 }
+
+	lfLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Local File"
+		::= { lfEntry 3 }
+
+	lfLoop OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Loop Status of the Local File"
+		::= { lfEntry 4 }
+
+	lfLoopCount OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Loop Count of the Local File"
+		::= { lfEntry 5 }
+
+	lfPosition OBJECT-TYPE
+		SYNTAX  TimeStamp
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Current playing position in seconds of Local File"
+		::= { lfEntry 6 }
+
+	lfBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the Local File"
+		::= { lfEntry 7 }
+
+	lfRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the file channel since the engine started"
+		::= { lfEntry 8 }
+
+	inpStatus	OBJECT IDENTIFIER ::= { skylone 13 }
+
+	-- kylone.inpStatus subtree
+	inpNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of Input Stream"
+		::= { inpStatus 1 }
+
+	inpTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF InpEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of Input Stream entries"
+		::= { inpStatus 2 }
+
+	inpEntry OBJECT-TYPE
+		SYNTAX  InpEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A Input Stream Entry"
+		INDEX   { inpIndex }
+		::= { inpTable 1 }
+
+	InpEntry ::= SEQUENCE {
+		inpIndex Integer32,
+		inpName DisplayString,
+		inpType DisplayString,
+		inpLock DisplayString,
+		inpStart DateAndTime,
+		inpDuration TimeStamp,
+		inpBitrate Gauge32,
+		inpBuffer BufferSize,
+		inpRestarts Integer32,
+		inpBitrate Gauge32,
+		inpNumService Integer32
+	}
+ 
+	inpIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each Input Stream"
+		::= { inpEntry 1 }
+
+	inpName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the Input Stream"
+		::= { inpEntry 2 }
+
+	inpType OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Type of the Input Stream: unicast, multicast, http, rtsp, hls, srt,
+        		 radio (receiver module), hdmiraw, hdmienc, sdienc"
+		::= { inpEntry 3 }
+
+	inpLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Input Stream"
+		::= { inpEntry 4 }
+
+	inpStart OBJECT-TYPE
+		SYNTAX  DateAndTime
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Start Time of the Input Stream"
+		::= { inpEntry 5 }
+
+	inpDuration OBJECT-TYPE
+		SYNTAX  TimeStamp
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total Time of the Input Stream"
+		::= { inpEntry 6 }
+
+	inpBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the Input Stream"
+		::= { inpEntry 7 }
+
+	inpBuffer OBJECT-TYPE
+		SYNTAX  BufferSize
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Input buffer in seconds of the Input Stream"
+		::= { inpEntry 8 }
+
+	inpRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts of the input stream since the engine started"
+		::= { inpEntry 9 }
+
+	inpBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Output rate of the input stream, bytes per second"
+		::= { inpEntry 10 }
+
+	inpNumService OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Output services of the input stream"
+		::= { inpEntry 11 }
+
+	peerStatus	OBJECT IDENTIFIER ::= { skylone 14 }
+
+	-- kylone.peerStatus subtree
+	peerNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+			"Number of Peer"
+		::= { peerStatus 1 }
+
+	peerTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF PeerEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of Peer entries"
+		::= { peerStatus 2 }
+
+	peerEntry OBJECT-TYPE
+		SYNTAX  PeerEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"A Peer Entry"
+		INDEX   { peerIndex }
+		::= { peerTable 1 }
+
+	PeerEntry ::= SEQUENCE {
+		peerIndex Integer32,
+		peerName DisplayString,
+		peerMacAddr DisplayString,
+		peerIPAddr DisplayString,
+		peerStart DateAndTime,
+		peerDuration TimeStamp,
+		peerBitrate Gauge32
+	}
+ 
+	peerIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each Peer"
+		::= { peerEntry 1 }
+
+	peerName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the Peer"
+		::= { peerEntry 2 }
+
+	peerMacAddr OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Peer"
+		::= { peerEntry 3 }
+
+	peerIPAddr OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock Status of the Peer"
+		::= { peerEntry 4 }
+
+	peerStart OBJECT-TYPE
+		SYNTAX  DateAndTime
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Start Time of the Peer"
+		::= { peerEntry 5 }
+
+	peerDuration OBJECT-TYPE
+		SYNTAX  TimeStamp
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Total Time of the Peer"
+		::= { peerEntry 6 }
+
+	peerBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bitrate of the Peer"
+		::= { peerEntry 7 }
+
+
+	-- groups 15 to 19 were added in module revision 2.1
+
+	engStatus	OBJECT IDENTIFIER ::= { skylone 15 }
+
+	-- kylone.engStatus subtree: the streaming engine and the unit as a whole
+	engUp OBJECT-TYPE
+		SYNTAX  Integer32 (0..1)
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"1 when the streaming engine answers status requests, 0 otherwise"
+		::= { engStatus 1 }
+
+	engUptime OBJECT-TYPE
+		SYNTAX  TimeTicks
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Time since the streaming engine started"
+		::= { engStatus 2 }
+
+	engEndpoints OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Endpoints the engine currently serves (viewer and relay sessions)"
+		::= { engStatus 3 }
+
+	engServices OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Streams the engine handles, all sections together"
+		::= { engStatus 4 }
+
+	engOutputRate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Sum of the streams' output rates, bytes per second"
+		::= { engStatus 5 }
+
+	engSystemUptime OBJECT-TYPE
+		SYNTAX  TimeTicks
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Time since the unit booted"
+		::= { engStatus 6 }
+
+	engSystemTime OBJECT-TYPE
+		SYNTAX  DateAndTime
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"The unit's clock"
+		::= { engStatus 7 }
+
+	engTemperature OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"CPU temperature in degrees Celsius; -1 when the unit has no sensor"
+		::= { engStatus 8 }
+
+	engMemoryTotal OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Memory installed, megabytes"
+		::= { engStatus 9 }
+
+	engMemoryAvailable OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Memory available, megabytes"
+		::= { engStatus 10 }
+
+	peStatus	OBJECT IDENTIFIER ::= { skylone 16 }
+
+	-- kylone.peStatus subtree
+	peNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of processing nodes (GPU or encoder boards of the processing modules)"
+		::= { peStatus 1 }
+
+	peTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF PeEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of processing nodes (GPU or encoder boards of the processing modules) entries"
+		::= { peStatus 2 }
+
+	peEntry OBJECT-TYPE
+		SYNTAX  PeEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"An entry of the processing nodes (GPU or encoder boards of the processing modules) table"
+		INDEX   { peIndex }
+		::= { peTable 1 }
+
+	PeEntry ::= SEQUENCE {
+		peIndex Integer32,
+		peModule DisplayString,
+		peNode DisplayString,
+		peProcesses Integer32,
+		peMemory Integer32,
+		peGpu Integer32,
+		peDecoder Integer32,
+		peEncoder Integer32,
+		pePower Integer32,
+		peTemperature Integer32
+	}
+
+	peIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each processing node"
+		::= { peEntry 1 }
+
+	peModule OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Module that owns the node"
+		::= { peEntry 2 }
+
+	peNode OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the node as the module reports it"
+		::= { peEntry 3 }
+
+	peProcesses OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Processes running on the node; -1 when not reported"
+		::= { peEntry 4 }
+
+	peMemory OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Memory utilisation of the node, percent; -1 when not reported"
+		::= { peEntry 5 }
+
+	peGpu OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"GPU utilisation, percent; -1 when not reported"
+		::= { peEntry 6 }
+
+	peDecoder OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Decoder utilisation, percent; -1 when not reported"
+		::= { peEntry 7 }
+
+	peEncoder OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Encoder utilisation, percent; -1 when not reported"
+		::= { peEntry 8 }
+
+	pePower OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Power draw, watts; -1 when not reported"
+		::= { peEntry 9 }
+
+	peTemperature OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Temperature, degrees Celsius; -1 when not reported"
+		::= { peEntry 10 }
+
+	stdStatus	OBJECT IDENTIFIER ::= { skylone 17 }
+
+	-- kylone.stdStatus subtree
+	stdNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of stand-ins (protection switches between a service and its fall-back feed)"
+		::= { stdStatus 1 }
+
+	stdTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF StdEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of stand-ins (protection switches between a service and its fall-back feed) entries"
+		::= { stdStatus 2 }
+
+	stdEntry OBJECT-TYPE
+		SYNTAX  StdEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"An entry of the stand-ins (protection switches between a service and its fall-back feed) table"
+		INDEX   { stdIndex }
+		::= { stdTable 1 }
+
+	StdEntry ::= SEQUENCE {
+		stdIndex Integer32,
+		stdName DisplayString,
+		stdMode DisplayString,
+		stdTrigger DisplayString,
+		stdArmed Integer32,
+		stdState DisplayString,
+		stdFeed DisplayString,
+		stdLock DisplayString,
+		stdStart DateAndTime,
+		stdDuration TimeTicks,
+		stdBitrate Gauge32,
+		stdNumService Integer32,
+		stdRestarts Integer32
+	}
+
+	stdIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each stand-in"
+		::= { stdEntry 1 }
+
+	stdName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the stand-in"
+		::= { stdEntry 2 }
+
+	stdMode OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Mode of the stand-in (guard, manual, ...)"
+		::= { stdEntry 3 }
+
+	stdTrigger OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"What arms the switch (aut = automatic, man = manual)"
+		::= { stdEntry 4 }
+
+	stdArmed OBJECT-TYPE
+		SYNTAX  Integer32 (0..1)
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"1 when the stand-in is armed"
+		::= { stdEntry 5 }
+
+	stdState OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Current state: pass (the primary feed runs), or the stand-in feed is on air"
+		::= { stdEntry 6 }
+
+	stdFeed OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Name of the fall-back feed"
+		::= { stdEntry 7 }
+
+	stdLock OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Lock status of the stream"
+		::= { stdEntry 8 }
+
+	stdStart OBJECT-TYPE
+		SYNTAX  DateAndTime
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Start time of the stream"
+		::= { stdEntry 9 }
+
+	stdDuration OBJECT-TYPE
+		SYNTAX  TimeTicks
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Running time of the stream"
+		::= { stdEntry 10 }
+
+	stdBitrate OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Output rate, bytes per second"
+		::= { stdEntry 11 }
+
+	stdNumService OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Services the stand-in covers"
+		::= { stdEntry 12 }
+
+	stdRestarts OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Restarts since the engine started"
+		::= { stdEntry 13 }
+
+	netStatus	OBJECT IDENTIFIER ::= { skylone 18 }
+
+	-- kylone.netStatus subtree
+	netNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of network interfaces"
+		::= { netStatus 1 }
+
+	netTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF NetEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of network interfaces entries"
+		::= { netStatus 2 }
+
+	netEntry OBJECT-TYPE
+		SYNTAX  NetEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"An entry of the network interfaces table"
+		INDEX   { netIndex }
+		::= { netTable 1 }
+
+	NetEntry ::= SEQUENCE {
+		netIndex Integer32,
+		netName DisplayString,
+		netLinkUp Integer32,
+		netSpeed Gauge32,
+		netRxMBytes Counter32,
+		netTxMBytes Counter32,
+		netRxErrors Counter32,
+		netTxErrors Counter32
+	}
+
+	netIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each interface"
+		::= { netEntry 1 }
+
+	netName OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Interface name"
+		::= { netEntry 2 }
+
+	netLinkUp OBJECT-TYPE
+		SYNTAX  Integer32 (0..1)
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"1 when the link is up"
+		::= { netEntry 3 }
+
+	netSpeed OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Link speed, megabits per second; 0 when unknown"
+		::= { netEntry 4 }
+
+	netRxMBytes OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Megabytes received on the interface since boot"
+		::= { netEntry 5 }
+
+	netTxMBytes OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Megabytes transmitted on the interface since boot"
+		::= { netEntry 6 }
+
+	netRxErrors OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Receive errors since boot"
+		::= { netEntry 7 }
+
+	netTxErrors OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Transmit errors since boot"
+		::= { netEntry 8 }
+
+	stoStatus	OBJECT IDENTIFIER ::= { skylone 19 }
+
+	-- kylone.stoStatus subtree
+	stoNumber OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Number of storage volumes"
+		::= { stoStatus 1 }
+
+	stoTable OBJECT-TYPE
+		SYNTAX  SEQUENCE OF StoEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"List of storage volumes entries"
+		::= { stoStatus 2 }
+
+	stoEntry OBJECT-TYPE
+		SYNTAX  StoEntry
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+			"An entry of the storage volumes table"
+		INDEX   { stoIndex }
+		::= { stoTable 1 }
+
+	StoEntry ::= SEQUENCE {
+		stoIndex Integer32,
+		stoVolume DisplayString,
+		stoDevice DisplayString,
+		stoSize Gauge32,
+		stoUsed Gauge32
+	}
+
+	stoIndex OBJECT-TYPE
+		SYNTAX  Integer32 (1..2147483647)
+		MAX-ACCESS  not-accessible
+		STATUS  current
+		DESCRIPTION
+        		"A unique value for each volume"
+		::= { stoEntry 1 }
+
+	stoVolume OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Mount point of the volume"
+		::= { stoEntry 2 }
+
+	stoDevice OBJECT-TYPE
+		SYNTAX  DisplayString
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Device behind the volume"
+		::= { stoEntry 3 }
+
+	stoSize OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Size of the volume, megabytes"
+		::= { stoEntry 4 }
+
+	stoUsed OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Megabytes used on the volume"
+		::= { stoEntry 5 }
+
+
+END

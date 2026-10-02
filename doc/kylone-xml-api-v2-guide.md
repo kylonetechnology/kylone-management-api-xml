@@ -482,6 +482,7 @@ have names (the positional `k` indices stay accepted):
 | `lcn` | `k8` | LCN of new streams | `yes` = from the source, `no` = automatic |
 | `updnames` | `k10` | update service names and logos of existing streams | `true`/`false` |
 | `updpidfilter`, `updscrambled`, `updlcn` | `k11`, `k12`, `k13` | PID filter, encrypted-stream state and LCN of existing streams | as above, or `ign` = keep as they are |
+
 ```
 # the form (tuner inputs and the scan options with their allowed values)
 php apicall-v2.php 192.0.2.1 $K $S autoscan "cont=tponder&key=DEMO11794&kA=autoask"
@@ -556,6 +557,7 @@ php apicall-v2.php 192.0.2.1 $K $S channels "act=save&key=DEMO11794_t10601&dname
 
 A multiplexer (`pmpts`): the key, the display name, the state, then the program list as a
 list field (section 3), one `itmlst` argument per program, each a program's record name:
+
 ```
 php apicall-v2.php 192.0.2.1 $K $S pmpts "act=add&name=mux-out-2&dname=Mux 2&active=1"
 php apicall-v2.php 192.0.2.1 $K $S pmpts "act=save&key=mux-out-2&itmlst=DEMO11794_t10601&itmlst=DEMO11794_t10602&bitrate=38000000&bren=yes&moaddr=239.0.0.2&moport=1234&brif=lan1"
@@ -566,6 +568,7 @@ A multi-program source received over SRT (`mptsin`): `spid=srt`, the connection 
 (`srtmod` 1 = caller, 2 = listener), the source address and port, and the SRT options
 (`srtsid`, `srtpwd`, `srtpbk`, `srtlat`); the add form takes the key, name and transmission,
 the rest is a save:
+
 ```
 php apicall-v2.php 192.0.2.1 $K $S mptsin "act=add&name=remote-mux-1&dname=Remote mux 1&spid=srt&active=1"
 php apicall-v2.php 192.0.2.1 $K $S mptsin "act=save&key=remote-mux-1&srtmod=1&straddr=192.0.2.27&iport=5168&srtsid=mux-out-1&srtpwd=<passphrase>&srtpbk=16&srtlat=500&mptout=auto"
@@ -584,13 +587,15 @@ Not available over the API: **Live Stream Import** (`kimport`) and **Bulk Operat
 lists them for completeness only. The equivalent over the API is one `add`/`save` per record,
 with the other headend's stream list read through its own API (`strurl`, `channels`).
 
-**Add validation.** An `add` that lacks the key field or a required (`must`) field, or
-gives an address field an invalid value, fails with `missing-arg` (400) naming the fields;
-it never answers `ok` with the form.
+**Add and save validation.** An `add` that lacks the key field or a required (`must`)
+field, or gives an address field an invalid value, fails with `missing-arg` (400) naming
+the fields; a `save` whose value a field's own check or the page's validation refuses fails
+with `bad-arg` (400) naming the fields. Neither answers `ok` with the form.
 
 **Raw values in lists.** `raw=true` on a list call returns the stored value of every stored
 column instead of its display value (`1` instead of "Active", the option value instead of
 its label), so an inventory needs one list call, not one view per record:
+
 ```
 php apicall-v2.php 192.0.2.1 $K $S channels "raw=true"
 ```
@@ -619,16 +624,17 @@ The secret of a key is shown in the web UI only; the API never returns it.
 php apicall-v2.php 192.0.2.1 $K $S systool                       # lists the tools as resources
 php apicall-v2.php 192.0.2.1 $K $S systool "act=sres,reboot"
 php apicall-v2.php 192.0.2.1 $K $S systool "act=sres,shutdown"
-php apicall-v2.php 192.0.2.1 $K $S version                       # provider, product, version, build, edition, host
+php apicall-v2.php 192.0.2.1 $K $S version                       # provider, product (the unit's brand and function), version, build, edition, host (the Host Name of the SNMP page)
 php apicall-v2.php 192.0.2.1 $K $S cmssumm                       # configuration summary as tree data: one <section> per kind with its records
 php apicall-v2.php 192.0.2.1 $K $S monitor                       # engine status = the realtime function dvbstat_clear (statdvb too)
 php apicall-v2.php 192.0.2.1 $K $S dash                          # system load = the realtime function cpustat_clear
 ```
 `version` answers a struct; a management system keeps it per unit to know what it talks to:
+
 ```xml
 <data model="struct">
   <provider>Example Broadcast Systems Ltd.</provider>
-  <product>Kylone</product>
+  <product>Kylone DVB-to-IP Gateway/Transcoder</product>
   <version>v4.2.0</version>
   <build>2026100100</build>
   <edition>Enterprise</edition>
@@ -636,6 +642,7 @@ php apicall-v2.php 192.0.2.1 $K $S dash                          # system load =
 </data>
 ```
 `cmssumm` answers one `<section>` per kind, in the order of the Configuration Summary page:
+
 ```xml
 <data model="tree">
   <elm>
@@ -702,6 +709,7 @@ session, no signature. Engine counters (`_total`) restart with the stream; use
 `kylone_service_restarts_total` to tell a restart from a reset.
 
 A scrape by hand, with curl:
+
 ```
 curl -u monitor:<secret> https://192.0.2.1/portal/?app=metrics
 ```
@@ -721,6 +729,7 @@ kylone_tuner_cnr_db{key="DEMO11794",transponder="Demo Mux 11794",band="Ku-H"} 11
 ```
 The Prometheus scrape configuration (`metrics-get.php` beside the reference clients does
 the same in PHP):
+
 ```yaml
 scrape_configs:
   - job_name: kylone
@@ -736,6 +745,13 @@ scrape_configs:
     static_configs:
       - targets: ["192.0.2.1"]
 ```
+
+The same figures are available over SNMP, in tables rather than labelled samples: the
+module `KYLONE-MIB.mib` beside this guide describes the enterprise subtree
+`1.3.6.1.4.1.51009` (product, load, receivers, inputs, multiplexers, modulators, processing
+modules and nodes, outputs, local files, stand-ins, peers, interfaces, volumes). The
+agent is enabled on the unit's SNMP Server page, which also serves the MIB file; a full
+walk takes well under a second from MicroCMS v4.2.0.
 
 ## 11. Notes
 

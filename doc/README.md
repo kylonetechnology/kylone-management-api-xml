@@ -16,6 +16,7 @@ HMAC.
 | `apicall-v1.php` | reference client for v1 |
 | `metrics-get.php` | reads the metrics endpoint (Prometheus text, HTTP basic auth with a read-only key) |
 | `fieldmap-dump.php` | dumps every page's field map of a headend and diffs two dumps (the fieldmap changelog between releases) |
+| `KYLONE-MIB.mib` | the SNMP module of the headend (enterprise 51009): load it into the management system; same figures as the metrics endpoint, in tables |
 
 Version 2 is the recommended API for new integrations (available from headend v4.1.1;
 the read-only key role, the `version` function, the realtime functions and the metrics

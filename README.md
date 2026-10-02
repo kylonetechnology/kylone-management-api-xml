@@ -23,6 +23,7 @@ Two versions of the API are served side by side:
 | `doc/kylone-xml-api-v2-blindscan.md` | v2 addendum for blind-scan appliances: scan tasks, runs with reports and diffs, the cycle schedule |
 | `doc/kylone-xml-api.pdf` | API v1 usage guide (2018) |
 | `doc/kylone-xml-api-v1-examples.md` | API v1 usage examples, refreshed in 2026 |
+| `doc/KYLONE-MIB.mib` | SNMP module of the headend (enterprise 51009, MicroCMS v4.2): the same figures as the metrics endpoint, as tables for a network management system |
 
 ## Reference clients
 

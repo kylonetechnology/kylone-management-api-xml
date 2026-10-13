@@ -37,6 +37,8 @@ php apicall-v1.php <host> <username> <password> <function> [arguments] [export n
 php metrics-get.php <host> <key name> <key secret>
 php fieldmap-dump.php <host> <key name> <key secret> <outdir>
 php fieldmap-dump.php diff <dirA> <dirB>
+php upgrade-url.php <host> <key name> <key secret> <app|os|mod|modupd> <url> <digest>
+php scan-job.php <host> <key name> <key secret> <tponders|mptsin> <record> [tuner=<adapter>] [option=value ...]
 ```
 
 Both print the request and the response, or only `ok`/`failed` with `CLQUITE=yes`, and

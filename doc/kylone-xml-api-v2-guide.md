@@ -539,6 +539,105 @@ program is one line in the headend's system log. Apply Changes afterwards. The s
 flow serves MPTS inputs with `cont=mptsin`. Deleting a transponder deletes its programs
 with it.
 
+### 8.5a Program scan as a job (asynchronous)
+
+From headend v4.2.0 a scan can run as a job: the call returns at once with a job id, the
+headend scans in the background, and the client polls the job. Use it for a multiplex with
+many programs (the synchronous `autoscan` keeps the HTTP request open for the whole scan,
+about five seconds per program) and whenever several tuner inputs are scanned at the same
+time: one job runs per tuner input, jobs on different inputs run concurrently.
+
+Start: the `scanjob` resource of a transponder (`tponders`) or MPTS input (`mptsin`)
+record, with the arguments of the scan form (section 8.5, the names or the `k` indices;
+an argument left out takes the form's default). A transponder needs `tuner`:
+
+```
+php apicall-v2.php 192.0.2.1 $K $S tponders "act=res,scanjob&key=DEMO11794&tuner=2&spts=true&avonly=true&lcn=yes"
+php apicall-v2.php 192.0.2.1 $K $S mptsin "act=res,scanjob&key=remote-mux-1&spts=true"
+```
+
+```xml
+<data model="struct"><job>20261013-091502-DEMO11794</job></data>
+```
+
+A refused start answers text instead: `busy: <job id>` when a job already holds that
+input (wait for it, or pick another input), `error: tuner input not given`, `error:
+commit in progress`. The synchronous `autoscan` call answers `busy: <job id>` too while a
+job holds the input.
+
+Poll: the `scanjobs` function lists the jobs, newest first, with `name` (job id), `dname`
+(the source), `sjcnt` (`tponder`/`tmptsin`), `sjrec` (record), `sjinp` (the input held:
+`tuner<n>` or `mpts-<record>`), `sjphs` (phase: `queued`, `tuning`, `programs`, `done`),
+`sjrsl` (result, set when done: `ok`, `failed` = the source could not be read, `error` =
+the job could not start, `lost` = the worker vanished, e.g. a reboot), `sjqtm`, `sjstm`,
+`sjftm` (queued, started, finished) and `sjcre`, `sjupd` (programs created, updated).
+Resources of a job: `report` (the scan report as text, the same text `autoscan` answers)
+and `log` (the last lines of the live log while running). `act=del` removes a finished job;
+the headend keeps the last ten jobs per input on its own.
+
+```
+php apicall-v2.php 192.0.2.1 $K $S scanjobs
+php apicall-v2.php 192.0.2.1 $K $S scanjobs "act=view&key=20261013-091502-DEMO11794"
+php apicall-v2.php 192.0.2.1 $K $S scanjobs "act=res,report&key=20261013-091502-DEMO11794"
+```
+
+The client loop: start, poll the view every five to ten seconds until `sjphs` is `done`,
+read `sjrsl` and the counts, read `channels` for the programs (section 8.6), Apply
+Changes (section 8.3). Two jobs that create programs at the same time may give two new
+programs the same automatic LCN; Apply Changes resolves that by moving the later one to
+the next free number, as it does for any duplicate. A job cannot be aborted; it ends by
+itself within the tuning timeout plus the program time. In the web UI the Configure
+Programs button runs the same job and shows its live log.
+
+The utility `scan-job.php` of this repository is that loop in one command: it starts the
+job, follows the phases, prints the result with the counts and the report, and exits 0
+when the scan ended ok (1 when refused or failed, 2 on a transport error). A transponder
+needs `tuner=<adapter>`, the other options are the scan form's names:
+
+```
+php scan-job.php 192.0.2.1 $K $S tponders DEMO11794 tuner=19 spts=true lcn=yes
+```
+
+```
+13:28:30 job 20261013-162830-DEMO11794 queued on adapter 19
+13:28:36 phase tuning
+13:28:41 phase programs
+13:28:47 phase done
+13:28:47 result ok: 0 created, 0 updated (started 13 October 2026 Tuesday, 16:28:30, finished 13 October 2026 Tuesday, 16:28:42)
+
+> DVB API 5, 511, Adapter(19/0)
+  Frontend: TurboSight TBS 6909x (Octa DVB-S/S2/S2X)
+  Adapter: /dev/dvb/adapter19/frontend0
+> Frequency: 11225000, BIS: 1475000, band(5)
+> DiSEqC sat(1), port(0x0)
+ Frontend 9 set
+~ TS sync
+> Processing PAT
+  SID List: 50701,50702,50703,50704,50705,50706,50707,50730,50731
+  TSID: 50401
+  9 programs listed
+> Processing PMT
+  Service ID: 50701, Program PID: 1701, PCR PID: 5701, Maximum bitrate: 216000Kbps
+  ES PIDs: 5701[Vid,mpeg4/h264,PCR], 5801[Aud,mpeg1], 5851[Prv,mpeg2]
+  Languages A[tur:0]
+  Count V:1 A:1 S:0 T:0
+...
+~ Done
+DEMO TV 1
+DEMO TV 2
+DEMO RADIO
+
+13:28:49 done: Apply Changes (commit) puts the programs on air
+```
+
+A second start on the same input while that job runs is refused, and the utility says so:
+
+```
+13:29:02 not started: busy: 20261013-162830-DEMO11794
+```
+
+The same with an MPTS input, no tuner: `php scan-job.php 192.0.2.1 $K $S mptsin remote-mux-1`.
+
 ### 8.6 DVB programs
 
 ```
@@ -678,6 +777,42 @@ Pages that `apicalls` marks `[web only]` (instance, contents, sysutil, the dashb
 boxes) render for a browser and have no API data; the functions above and `cmssumm`
 carry their figures.
 
+**Software upgrade from a URL.** The Tools page's "Install from URL" is the resource `dlurl`
+of `systool` (admin and domain keys; from headend v4.2.0). The headend downloads the
+package itself, checks the digest and runs the upgrade; the call returns at once:
+
+```
+php apicall-v2.php 192.0.2.1 $K $S systool "act=sres,dlurl&dlkind=app&dlurl=https://packages.example/upg-v4.2.0-2026101216.dat&dlsha=065be578450eba64588f7f4fdf71ee0b752fe1a4"
+```
+
+- `dlkind`: `app` (system upgrade package), `os` (OS update package, e.g. a driver set),
+  `mod` (module install package), `modupd` (module update package).
+- `dlurl`: an `http://` or `https://` address; credentials in the URL are accepted and
+  never logged.
+- `dlsha`: SHA-1 (40 hex digits) or SHA-256 (64) of the file. Required: a package whose
+  digest differs is deleted and nothing is installed.
+
+The answer is `<data model="text">started</data>`, or `error: <reason>` for a refused
+argument (kind not selected, address without a scheme, malformed digest). A key whose role
+has no Tools page gets `unknown-target`. The upgrade log is the Operation Log of the web
+UI and is not readable through the API, so a management system watches the unit instead:
+
+1. Before: `version` — note `build`.
+2. Start: the call above. For `app` and `os` the portal goes away while the package is
+   installed (calls fail), then comes back; about two minutes with a 200 MB package on a
+   fast link, longer on a slow one. For `mod` and `modupd` the portal stays up.
+3. After: `version` — `build` is the one of the package (the build number is part of the
+   package name); an unchanged build after the portal came back means the package was
+   refused (digest, kind, damaged file: the Operation Log says which). For a module
+   package, `plugins` lists the module.
+4. Health: `dvbstat_clear` with `psi=0` answers `ok` (the engine restarted), the metrics
+   endpoint answers HTTP 200, and whatever the integration checks per unit (SNMP walk,
+   a known output on the status page).
+
+`upgrade-url.php` in this folder does the four steps for one unit and exits 0 when every
+check passed. Upgrade one unit at a time and wait for its result before the next; the
+package pipeline builds one file per kernel line, so pick the file that matches the unit.
+
 ## 9. Migrating a v1 integration
 
 1. Create a management key; replace the login/logout calls with the four signature fields.
@@ -691,6 +826,26 @@ Module profile pages (pre-processing, post-processing and HLS output profiles) n
 their fields `item<N>` after the module's argument list; use the fieldmap titles to find
 the right one, and expect these names to follow the module version.
 
+## 9a. Dependent fields (`when`)
+
+From MicroCMS v4.2 a page may declare that a field's presence, and for an option field its
+list, follow the value of another field (the transmission of a multi-program source, the
+connection mode of an SRT source). Such a field carries a `when` attribute in the field map:
+
+```xml
+<atr name="netaddr" k="6" must="true" ro="false" type="option" when="spid=multicast,unicast,srt;srtmod=2,,0">Interface</atr>
+<atr name="spurl" k="13" must="true" ro="false" type="str" when="spid=http,localfile">Stream URL</atr>
+```
+
+Each `selector=value,value` pair names a selector field and the values under which this
+field is present (an empty value is written as an empty entry); several pairs, separated by
+`;`, must all hold. A field that is absent for the current values is not required, is not
+checked, and keeps its stored value; an `add` or `save` needs only the present `must`
+fields. The option list the answer carries is the one that applies to the record's current
+values, and the option check on a `save` uses the list that applies to the posted ones
+(an interface *name* under multicast, an interface *address* under SRT). The field
+numbering (`k`) of such a page no longer changes with the selector's value.
+
 ## 10. Metrics endpoint (Prometheus)
 
 `GET https://<host>/portal/?app=metrics` returns the unit's figures in the Prometheus text
@@ -701,7 +856,12 @@ every stream (`kylone_service_*` with the labels `section`, `service`, `key`: up
 buffer, invalid, errors, discontinuities, restarts, start time, inputs, outputs, speed, fps,
 dropped frames), the tuners (`kylone_tuner_*` with `key`, `transponder`, `band`: lock, CNR in dB,
 level in dBm, or the `_percent` variants on cards that report relative figures), the
-stand-ins, and the processing modules (`kylone_pe_*` with `module`, `node`).
+stand-ins, the SRT links (`kylone_srt_*` with the stream labels plus `role` = `receiver`
+or `sender`: connected, RTT, lost, retransmitted and dropped packets since the connection,
+bandwidth estimate, packets in flight, buffer span; an SRT source and an MPTS source over
+SRT are receivers, an SRT output and the clients of the unit's own SRT port are senders,
+the latter under `section="peers"` with the client's address and port as `key`) and the
+processing modules (`kylone_pe_*` with `module`, `node`).
 
 Authentication is HTTP basic auth with a Management API key: user = the key name,
 password = the secret as displayed, HTTPS only; a read-only key is the fitting one. No

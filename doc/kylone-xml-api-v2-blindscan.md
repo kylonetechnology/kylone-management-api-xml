@@ -116,11 +116,12 @@ come and go within the reading window).
 `bscctl` is a single record. Its field `bssch` selects the cycle schedule from a fixed
 list (`none`, `daily@01:00`, `daily@03:00`, `daily@05:00`, `every@12h`, `every@6h`,
 `weekly@Sun@03:00`); saving it installs or removes the headend's timer at once. The cycle
-queues every enabled task in `bsord` order, one after another.
+queues every enabled task in `bsord` order; runs on different adapters proceed at the same
+time (from headend v4.2.0), runs on the same adapter or RF input one after another.
 
 | resource | answer |
 |---|---|
-| `state` | the runner's state as text data, key=value lines: `status` (drivers), `adapters`, `settled`, `schedule`, `next` (epoch of the next cycle), `active` and `active.*` (the running scan: task, phase, progress, locks so far, current carrier), `queue`, `queued`, one `task.<name>` line per task, `runs` |
+| `state` | the runner's state as text data, key=value lines: `status` (drivers), `adapters`, `settled`, `schedule`, `next` (epoch of the next cycle), `active` and `active.*` (the running scan: task, phase, progress, locks so far, current carrier), `queue`, `queued`, one `task.<name>` line per task, `runs`  `running` (workers at the moment, one per adapter) and one `run.<id>` line per worker (`task|phase|progress|started|locks|current|programs|adapter`) |
 | `cycle` | queue every enabled task now; answers `<queued>` with the count |
 | `stop` | empty the queue; argument `abort=true` also stops the active run |
 

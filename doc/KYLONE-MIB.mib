@@ -1,5 +1,5 @@
 KYLONE-MIB DEFINITIONS ::= BEGIN
-	-- Version: 2.1
+	-- Version: 2.2
 	-- SUBTREE: 1.3.6.1.4.1.51009
 	-- iso.org.dod.internet.private.enterprises.skylone
 	--
@@ -18,7 +18,7 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 
 	kylone MODULE-IDENTITY
 		LAST-UPDATED
-			"202610021800Z"
+			"202610132300Z"
 		ORGANIZATION
 			"Kylone"
 		CONTACT-INFO
@@ -29,6 +29,18 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 			"The MIB of the Kylone headend units: product and version, system
 			 load, and the state of the receivers, inputs, multiplexers, modulators,
 			 processing modules, outputs, local files and connected peers."
+		REVISION
+			"202610132300Z"
+		DESCRIPTION
+			"Revision 2.3: the SRT link figures appended to the MPTS input table
+			 (mptSrtState .. mptSrtBandwidth), the input table (inpSrt*) and the
+			 peer table (peerSrt*): link state, round-trip time, lost, retransmitted
+			 and dropped packets since the connection, bandwidth estimate."
+		REVISION
+			"202610081500Z"
+		DESCRIPTION
+			"Revision 2.2: tpBer, tpBerType and tpUncorrected appended to the
+			 receiver table."
 		REVISION
 			"202610021800Z"
 		DESCRIPTION
@@ -147,7 +159,10 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 		tpDiscont Integer32,
 		tpNumConfig Integer32,
 		tpNumService Integer32,
-		tpRestarts Integer32
+		tpRestarts Integer32,
+		tpBer Integer32,
+		tpBerType Integer32,
+		tpUncorrected Integer32
 	}
  
 	tpIndex OBJECT-TYPE
@@ -262,6 +277,30 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
         		"Restarts of the receiver stream since the engine started"
 		::= { tpEntry 14 }
 
+	tpBer OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Bit error ratio of the receiver in units of 1e-9 (123 = 1.23e-7); -1 when the driver reports none. tpBerType says which ratio it is"
+		::= { tpEntry 15 }
+
+	tpBerType OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Kind of tpBer: 0 none, 1 post-FEC bit errors from the driver's counters, 2 pre-FEC bit errors, 3 the demodulator's own figure (bit error ratio on DVB-S, packet error ratio on DVB-S2)"
+		::= { tpEntry 16 }
+
+	tpUncorrected OBJECT-TYPE
+		SYNTAX  Integer32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Uncorrected blocks since the stream started, on cards that count them; -1 when the driver reports none"
+		::= { tpEntry 17 }
+
 	mptStatus	OBJECT IDENTIFIER ::= { skylone 7 }
 
 	-- kylone.mptStatus subtree
@@ -300,7 +339,13 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 		mptDiscont Integer32,
 		mptNumConfig Integer32,
 		mptNumService Integer32,
-		mptRestarts Integer32
+		mptRestarts Integer32,
+		mptSrtState INTEGER,
+		mptSrtRtt Gauge32,
+		mptSrtLost Counter32,
+		mptSrtRetrans Counter32,
+		mptSrtDropped Counter32,
+		mptSrtBandwidth Gauge32
 	}
  
 	mptIndex OBJECT-TYPE
@@ -382,6 +427,57 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 		DESCRIPTION
         		"Restarts of the MPTS input since the engine started"
 		::= { mptEntry 10 }
+
+	-- the SRT link figures (module revision 2.3): for an MPTS input pulled over SRT; the
+	-- counters run since the link connected, the receiver's own view
+	mptSrtState OBJECT-TYPE
+		SYNTAX  INTEGER { none(0), connected(1), disconnected(2) }
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"SRT link of the MPTS input: none when the input is not an SRT caller,
+        		 connected, or disconnected while the input reconnects"
+		::= { mptEntry 11 }
+
+	mptSrtRtt OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Round-trip time of the SRT link, tenths of a millisecond"
+		::= { mptEntry 12 }
+
+	mptSrtLost OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets lost on the SRT link since it connected"
+		::= { mptEntry 13 }
+
+	mptSrtRetrans OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets retransmitted on the SRT link since it connected"
+		::= { mptEntry 14 }
+
+	mptSrtDropped OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets dropped as too late to play since the SRT link connected"
+		::= { mptEntry 15 }
+
+	mptSrtBandwidth OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Link bandwidth the SRT library estimates, kbit/s"
+		::= { mptEntry 16 }
 
 	muxStatus	OBJECT IDENTIFIER ::= { skylone 8 }
 
@@ -991,7 +1087,13 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 		inpBuffer BufferSize,
 		inpRestarts Integer32,
 		inpBitrate Gauge32,
-		inpNumService Integer32
+		inpNumService Integer32,
+		inpSrtState INTEGER,
+		inpSrtRtt Gauge32,
+		inpSrtLost Counter32,
+		inpSrtRetrans Counter32,
+		inpSrtDropped Counter32,
+		inpSrtBandwidth Gauge32
 	}
  
 	inpIndex OBJECT-TYPE
@@ -1083,6 +1185,57 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
         		"Output services of the input stream"
 		::= { inpEntry 11 }
 
+	-- the SRT link figures (module revision 2.3): for an input of type srt; the counters
+	-- run since the link connected, the receiver's own view
+	inpSrtState OBJECT-TYPE
+		SYNTAX  INTEGER { none(0), connected(1), disconnected(2) }
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"SRT link of the input: none when the input is not of type srt,
+        		 connected, or disconnected while the input reconnects"
+		::= { inpEntry 12 }
+
+	inpSrtRtt OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Round-trip time of the SRT link, tenths of a millisecond"
+		::= { inpEntry 13 }
+
+	inpSrtLost OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets lost on the SRT link since it connected"
+		::= { inpEntry 14 }
+
+	inpSrtRetrans OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets retransmitted on the SRT link since it connected"
+		::= { inpEntry 15 }
+
+	inpSrtDropped OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets dropped as too late to play since the SRT link connected"
+		::= { inpEntry 16 }
+
+	inpSrtBandwidth OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Link bandwidth the SRT library estimates, kbit/s"
+		::= { inpEntry 17 }
+
 	peerStatus	OBJECT IDENTIFIER ::= { skylone 14 }
 
 	-- kylone.peerStatus subtree
@@ -1118,7 +1271,13 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 		peerIPAddr DisplayString,
 		peerStart DateAndTime,
 		peerDuration TimeStamp,
-		peerBitrate Gauge32
+		peerBitrate Gauge32,
+		peerSrtState INTEGER,
+		peerSrtRtt Gauge32,
+		peerSrtLost Counter32,
+		peerSrtRetrans Counter32,
+		peerSrtDropped Counter32,
+		peerSrtBandwidth Gauge32
 	}
  
 	peerIndex OBJECT-TYPE
@@ -1176,6 +1335,58 @@ KYLONE-MIB DEFINITIONS ::= BEGIN
 		DESCRIPTION
         		"Bitrate of the Peer"
 		::= { peerEntry 7 }
+
+	-- the SRT link figures (module revision 2.3): for a peer connected to the unit's SRT
+	-- port; this unit sends, so the loss figures are the peer's reports; the counters run
+	-- since the peer connected
+	peerSrtState OBJECT-TYPE
+		SYNTAX  INTEGER { none(0), connected(1) }
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"SRT link of the peer: none for a peer on another protocol, connected
+        		 for an SRT peer (a listed SRT peer is connected)"
+		::= { peerEntry 8 }
+
+	peerSrtRtt OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Round-trip time of the SRT link, tenths of a millisecond"
+		::= { peerEntry 9 }
+
+	peerSrtLost OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets the peer reported lost since it connected"
+		::= { peerEntry 10 }
+
+	peerSrtRetrans OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets retransmitted to the peer since it connected"
+		::= { peerEntry 11 }
+
+	peerSrtDropped OBJECT-TYPE
+		SYNTAX  Counter32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Packets dropped as too late to send since the peer connected"
+		::= { peerEntry 12 }
+
+	peerSrtBandwidth OBJECT-TYPE
+		SYNTAX  Gauge32
+		MAX-ACCESS  read-only
+		STATUS  current
+		DESCRIPTION
+        		"Link bandwidth the SRT library estimates, kbit/s"
+		::= { peerEntry 13 }
 
 
 	-- groups 15 to 19 were added in module revision 2.1

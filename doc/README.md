@@ -16,6 +16,8 @@ HMAC.
 | `apicall-v1.php` | reference client for v1 |
 | `metrics-get.php` | reads the metrics endpoint (Prometheus text, HTTP basic auth with a read-only key) |
 | `fieldmap-dump.php` | dumps every page's field map of a headend and diffs two dumps (the fieldmap changelog between releases) |
+| `upgrade-url.php` | upgrades one headend from a package URL through the API (Install from URL) and runs the post-checks: build, engine status, metrics |
+| `scan-job.php` | scans one transponder or MPTS input for programs as a job through the API, follows the job and prints the report |
 | `KYLONE-MIB.mib` | the SNMP module of the headend (enterprise 51009): load it into the management system; same figures as the metrics endpoint, in tables |
 
 Version 2 is the recommended API for new integrations (available from headend v4.1.1;
